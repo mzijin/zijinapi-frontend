@@ -18,3 +18,9 @@ declare module 'react-fittext';
 declare module 'bizcharts-plugin-slider';
 
 declare const REACT_APP_ENV: 'test' | 'dev' | 'pre' | false;
+/**
+ * 全局状态类型*/
+interface InitialState{
+  //UserVO是User的封装类
+  loginUser: Api.UserVO,
+}

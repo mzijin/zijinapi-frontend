@@ -8,6 +8,7 @@ import type { MenuInfo } from 'rc-menu/lib/interface';
 import React, { useCallback } from 'react';
 import { flushSync } from 'react-dom';
 import HeaderDropdown from '../HeaderDropdown';
+import {userLogoutUsingPOST} from "@/services/zijinapi-backend/userController";
 
 export type GlobalHeaderRightProps = {
   menu?: boolean;
@@ -62,9 +63,9 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({ menu, childre
       const { key } = event;
       if (key === 'logout') {
         flushSync(() => {
-          setInitialState((s) => ({ ...s, currentUser: undefined }));
+          setInitialState((s) => ({ ...s, loginUser: undefined }));
         });
-        loginOut();
+        userLogoutUsingPOST();
         return;
       }
       history.push(`/account/${key}`);
