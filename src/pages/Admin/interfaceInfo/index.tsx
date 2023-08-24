@@ -1,4 +1,3 @@
-import { removeRule} from '@/services/ant-design-pro/api';
 import { PlusOutlined } from '@ant-design/icons';
 import type { ActionType, ProColumns, ProDescriptionsItemProps } from '@ant-design/pro-components';
 import {
@@ -16,11 +15,15 @@ import React, { useRef, useState } from 'react';
 
 import {SortOrder} from "antd/es/table/interface";
 import {
-  addInterfaceInfoUsingPOST, deleteInterfaceInfoUsingPOST,
-  listInterfaceInfoByPageUsingGET, updateInterfaceInfoUsingPOST
+  addInterfaceInfoUsingPOST,
+  deleteInterfaceInfoUsingPOST,
+  listInterfaceInfoByPageUsingGET,
+  updateInterfaceInfoUsingPOST,
+  updateofflineInterfaceInfoUsingPOST,
+  updateonlineInterfaceInfoUsingPOST
 } from "@/services/zijinapi-backend/interfaceInfoController";
-import CreateModal from "@/pages/interfaceInfo/components/CreateModal";
-import UpdateModal from "@/pages/interfaceInfo/components/UpdateModal";
+import CreateModal from "@/pages/Admin/interfaceInfo/components/CreateModal";
+import UpdateModal from "@/pages/Admin/interfaceInfo/components/UpdateModal";
 
 /**
  * @en-US Update node
@@ -44,8 +47,8 @@ const TableList: React.FC = () => {
   const [updateModalVisible, handleUpdateModalVisible] = useState<boolean>(false);
   const [showDetail, setShowDetail] = useState<boolean>(false);
   const actionRef = useRef<ActionType>();
-  const [currentRow, setCurrentRow] = useState<API.RuleListItem>();
-  const [selectedRowsState, setSelectedRows] = useState<API.RuleListItem[]>([]);
+  const [currentRow, setCurrentRow] = useState<API.InterfaceInfo>();
+  const [selectedRowsState, setSelectedRows] = useState<API.InterfaceInfo[]>([]);
   /**
    * @en-US Add node
    * @zh-CN 添加节点
@@ -76,9 +79,13 @@ const TableList: React.FC = () => {
    */
   const handleUpdate = async (fields: API.InterfaceInfo) => {
     const hide = message.loading('操作中');
+    if( !currentRow ){
+      return
+    }
     try {
       // 跟之前一样调用自己的后端
       await updateInterfaceInfoUsingPOST({
+        id: currentRow.id,
         ...fields
       });
       hide();
@@ -111,6 +118,54 @@ const TableList: React.FC = () => {
     } catch (error: any) {
       hide();
       message.error('删除失败'+error.message);
+      return false;
+    }
+  };
+  /**
+   *  Delete node
+   * @zh-CN 发布接口
+   *
+   * @param selectedRows
+   */
+  const handleonline = async (record: API.IdRequest) => {
+    const hide = message.loading('操作中');
+    if (!record) return true;
+    try {
+      // 调用后端删除的方法
+      await updateonlineInterfaceInfoUsingPOST({
+        id: record.id
+      });
+      hide();
+      message.success('发布成功');
+      actionRef.current?.reload();
+      return true;
+    } catch (error: any) {
+      hide();
+      message.error('发布失败'+error.message);
+      return false;
+    }
+  };
+  /**
+   *  Delete node
+   * @zh-CN 下线接口
+   *
+   * @param selectedRows
+   */
+  const handleoffline = async (record: API.IdRequest) => {
+    const hide = message.loading('操作中');
+    if (!record) return true;
+    try {
+      // 调用后端删除的方法
+      await updateofflineInterfaceInfoUsingPOST({
+        id: record.id
+      });
+      hide();
+      message.success('下线成功');
+      actionRef.current?.reload();
+      return true;
+    } catch (error: any) {
+      hide();
+      message.error('下线失败'+error.message);
       return false;
     }
   };
@@ -152,14 +207,19 @@ const TableList: React.FC = () => {
       valueType: 'text',
     },
     {
+      title: '请求参数',
+      dataIndex: 'requestParams',
+      valueType: 'jsonCode',
+    },
+    {
       title: '请求头',
       dataIndex: 'requestHeader',
-      valueType: 'textarea',
+      valueType: 'jsonCode',
     },
     {
       title: '响应头',
       dataIndex: 'responseHeader',
-      valueType: 'textarea',
+      valueType: 'jsonCode',
     },
     {
       title: '状态',
@@ -203,7 +263,32 @@ const TableList: React.FC = () => {
         >
           修改
         </a>,
-        <a
+        // 这里做一个判断，如过为0就展示，不为0就展示，默认为0，下线也一样的道理
+        record.status === 0?<a
+          key="config"
+          onClick={() => {
+            // 因为这个是展示函数，所以要展示多行
+            handleonline(record);
+
+          }}
+        >
+          发布
+        </a> : null,
+        // 把a标签改为button，这样就可以把文本改成删除按钮的样子
+        record.status === 1 ? <Button
+          type={"text"}
+          danger
+          key="config"
+          onClick={() => {
+            // 因为这个是展示函数，所以要展示多行
+            handleoffline(record);
+          }}
+        >
+          下线
+        </Button> : null,
+        <Button
+          type={"text"}
+          danger
           key="config"
           onClick={() => {
             // 这里是删除函数，所以只需要单行
@@ -213,7 +298,7 @@ const TableList: React.FC = () => {
           }}
         >
           删除
-        </a>,
+        </Button>,
       ],
     },
   ];
@@ -278,7 +363,7 @@ const TableList: React.FC = () => {
               </a>{' '}
               项 &nbsp;&nbsp;
               <span>
-                服务调用次数总计 {selectedRowsState.reduce((pre, item) => pre + item.callNo!, 0)} 万
+                服务调用次数总计 {selectedRowsState.reduce((pre, item) => pre, 0)} 万
               </span>
             </div>
           }
